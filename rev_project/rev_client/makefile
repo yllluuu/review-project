@@ -1,4 +1,4 @@
-PREFIX ?=/home/iot24/yanglu/review-project/rev_project/rev_client
+PREFIX ?=`pwd`
 LIBNAME=mycli
 APP_NAME=client
 CFLAGS +=-I ./include/ 
@@ -6,10 +6,10 @@ LDFLAGS +=-L ./lib/
 ARGUMENTS=-i 127.0.0.1 -p 78965 -t 2
 
 all:install
-	@gcc main.c -o ${APP_NAME} ${CFLAGS} -l${LIBNAME} ${LDFLAGS} -I ../../../sqlite/include/ -lsqlite3 -L ../../../sqlite/lib/ 
+	@gcc main.c -o ${APP_NAME} ${CFLAGS} -l${LIBNAME} ${LDFLAGS} -I /home/iot24/yanglu/sqlite/include/ -lsqlite3 -L /home/iot24/yanglu/sqlite/lib/ 
 
 shared_lib:
-	@gcc -shared -fPIC -o lib${LIBNAME}.so ./src/*.c -I ./include/ -I ../../../sqlite/include/ 
+	@gcc -shared -fPIC -o lib${LIBNAME}.so ./src/*.c -I ./include/ -I /home/iot24/yanglu/sqlite/include/ 
 
 clean:
 	@rm -f ${PREFIX}/lib/*.so 

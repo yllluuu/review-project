@@ -1,4 +1,4 @@
-PREFIX ?=/home/iot24/yanglu/review-project/rev_project/rev_server
+PREFIX ?=`pwd`
 LIBNAME=myser
 APP_NAME=server
 CFLAGS +=-I ./include/ 
@@ -6,10 +6,10 @@ LDFLAGS +=-L ./lib/
 ARGUMENTS=-p 78965
 
 all:install
-	@gcc main.c -o ${APP_NAME} ${CFLAGS} -l${LIBNAME} ${LDFLAGS} -I ../../../sqlite/include/ -lsqlite3 -L ../../../sqlite/lib/ 
+	@gcc main.c -o ${APP_NAME} ${CFLAGS} -l${LIBNAME} ${LDFLAGS} -I /home/iot24/yanglu/sqlite/include/ -lsqlite3 -L /home/iot24/yanglu/sqlite/lib/ 
 
 shared_lib:
-	@gcc -shared -fPIC -o lib${LIBNAME}.so ./src/*.c -I ./include/ -I ../../../sqlite/include/
+	@gcc -shared -fPIC -o lib${LIBNAME}.so ./src/*.c -I ./include/ -I /home/iot24/yanglu/sqlite/include/
 
 clean:
 	@rm -f ${PREFIX}/lib/*.so
