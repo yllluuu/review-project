@@ -1,4 +1,4 @@
-PREFIX ?=/home/iot24/yanglu/project/rev_project/rev_server
+PREFIX ?=/home/iot24/yanglu/review-project/rev_project/rev_server
 LIBNAME=myser
 APP_NAME=server
 CFLAGS +=-I ./include/ 

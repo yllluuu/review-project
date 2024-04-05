@@ -168,6 +168,7 @@ int main(int argc,char **argv)
 							dbg_print("Insert data successfully\n");
 						}
 					}
+					sqlite3_close_database(db);/* 关闭数据库 */
 				}
 			}
 		}
