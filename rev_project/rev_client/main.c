@@ -23,15 +23,11 @@ int main(int argc,char **argv)
 	int							rv=-1;
 	char						buf[1024];
 	int							ch;
-	//temperature
-	float						temp;
+	//data
+	sock_data					pack_data;
 	int							len=20;
 	//interval
 	int							time;//休眠时间
-	//id
-	char						Id[16];
-	//localtime
-	char						localt[128];
 	//sqlite3
 	sqlite3						*db;
 	int							rows;
@@ -76,11 +72,11 @@ int main(int argc,char **argv)
 	while(1)
 	{
 		memset(buf,0,sizeof(buf));
-		get_temperature(&temp);
-		get_dev(Id,len);
-		get_tm(localt);
+		get_temperature(&pack_data.temp);
+		get_dev(pack_data.Id,len);
+		get_tm(pack_data.localt);
 
-		snprintf(buf,sizeof(buf),"%s %f %s",Id,temp,localt);/* 将数据写入buf中 */
+		snprintf(buf,sizeof(buf),"%s %f %s",pack_data.Id,pack_data.temp,pack_data.localt);/* 将数据写入buf中 */
 
 		k=socket_alive(connfd);/* 判断服务器是否断开 */
 		if(k<0)/* 若断开 */
@@ -90,7 +86,7 @@ int main(int argc,char **argv)
 			db=sqlite3_open_database(DB_NAME);/* 创建打开数据库 */
 			if(sqlite3_create_table(db,TABLE_NAME)==0)/* 创建表 */
 			{
-				if(sqlite3_insert(db,TABLE_NAME,Id,&temp,localt)==0)/* 数据写入表 */
+				if(sqlite3_insert(db,TABLE_NAME,&pack_data)==0)/* 数据写入表 */
 				{
 					dbg_print("Insert data successfully\n");
 				}
@@ -104,31 +100,42 @@ int main(int argc,char **argv)
 
 			else/* 已连上 */
 			{
-				db=sqlite3_open_database(DB_NAME);/* 打开数据库 */
-				memset(data_buf,0,sizeof(data_buf));
-				do
+				dbg_print("Reconnect server successfully\n");
+			}
+		}
+		else/* 服务端未断开或已连上 */
+		{
+			db=sqlite3_open_database(DB_NAME);
+			memset(data_buf,0,sizeof(data_buf));
+			if(sqlite3_select_all(db,TABLE_NAME)>0)/* 查询数据库中是否存有数据 */
+			{
+				dbg_print("有数据\n");
+				/* 若存有数据 */
+				if(sqlite3_select(db,TABLE_NAME,data_buf)>0)/* 从数据库中取出数据 */
 				{
-					rows=sqlite3_select(db,TABLE_NAME,data_buf);/* rows存入数据的行数,从数据库中取出数据存入data_buf */
+					dbg_print("从数据库中取出数据\n");
 					if(write(connfd,data_buf,strlen(data_buf))<0)
 					{
 						dbg_print("Write data to server failure:%s\n",strerror(errno));
 						goto CleanUp;
 					}
-					sqlite3_delete(db,TABLE_NAME);/* 删除表中的数据 */
-				}while(rows>1);
-
-				sqlite3_close_database(db);/* 关闭数据库 */
+					sqlite3_delete(db,TABLE_NAME);/* 发送一条数据则删除一条数据 */
+				}
+			
+				else
+				{
+					sqlite3_close_database(db);/* 若数据库中不存在数据则关闭数据库 */
+				}
 			}
-		}
-		else/* 服务端未断开 */
-		{
+			/* 直接发送数据 */
+			dbg_print("直接发送数据\n");
 			if(write(connfd,buf,strlen(buf))<0)
 			{
 				dbg_print("Write data to server failure:%s\n",strerror(errno));
 				goto CleanUp;
 			}
 
-     		memset(buf,0,sizeof(buf));
+     	    memset(buf,0,sizeof(buf));
 			rv=read(connfd,buf,sizeof(buf));
 			if(rv<0)
 			{

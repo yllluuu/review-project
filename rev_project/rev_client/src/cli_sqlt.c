@@ -99,14 +99,14 @@ int sqlite3_delete_table(sqlite3*db,char * table_name)
 }
 
 //插入数据
-int sqlite3_insert(sqlite3* db,char* table_name,char *ID,float  *temp,char * localtime)
+int sqlite3_insert(sqlite3* db,char* table_name,sock_data *tdata)
 {
 	int		rc=0;
 	int		ret=-1;
 	char	sql[128];
 	char	*err_msg=NULL;
 
-	sprintf(sql,"INSERT INTO %s(ID,Temperature,time1) VALUES ('%s',%f,'%s')",table_name,ID,*temp,localtime);
+	sprintf(sql,"INSERT INTO %s(ID,Temperature,time1) VALUES ('%s',%f,'%s')",table_name,tdata->Id,tdata->temp,tdata->localt);
 	
 	rc=sqlite3_exec(db,sql,0,0,&err_msg);
 	if(rc!=SQLITE_OK)
@@ -163,4 +163,42 @@ int sqlite3_select(sqlite3* db,char* table_name,char *data_buf)
 	}	
 	snprintf(data_buf,128,"%s %.2f %s\n",results[3],atof(results[4]),results[5]);		    
 	return rows;
+}
+
+//查询数据库中是否含有数据
+int sqlite3_select_all(sqlite3* db,char* table_name)
+{
+	char			*err_msg=NULL;
+	int				rc;
+	char			sql[128]={0};
+	sqlite3_stmt	*stmt;
+	int				result=0;
+	int				rv;
+
+	sprintf(sql,"SELECT COUNT(*) FROM %s",table_name);
+	rc=sqlite3_prepare_v2(db,sql,-1,&stmt,0);
+
+	if(rc!=SQLITE_OK)
+	{
+		dbg_print("Failed to prepare statement:%s\n",err_msg);
+		sqlite3_free(err_msg);
+		return (0);
+	}
+
+	rc=sqlite3_step(stmt);
+	if(rc==SQLITE_ROW)
+	{
+		result=sqlite3_column_int(stmt,0);
+	}
+
+	if(result>0)
+	{
+		rv=1;
+	}
+	else
+	{
+		rv=-1;
+	}
+	sqlite3_finalize(stmt);
+	return rv;
 }

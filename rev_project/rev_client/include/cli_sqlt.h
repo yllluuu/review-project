@@ -21,13 +21,21 @@
 #define dbg_print(format,args...)	do{} while(0)
 #endif
 
+typedef struct Sock_data
+{
+	char		Id[16];
+	char		localt[128];
+	float		temp;
+}sock_data;
+
 sqlite3* sqlite3_open_database(char * db_name);
 void sqlite3_close_database(sqlite3* db);
 int sqlite3_exist_table(sqlite3* db,char* table_name);
 int sqlite3_create_table(sqlite3* db,char* table_name);
 int sqlite3_delete_table(sqlite3* db,char* table_name);
-int sqlite3_insert(sqlite3* db,char* table_name,char* ID,float *temp,char* localtime);
+int sqlite3_insert(sqlite3* db,char* table_name,sock_data *tdata);
 int sqlite3_delete(sqlite3* db,char* table_name);
 int sqlite3_select(sqlite3* db,char* table_name,char* data_buf);
+int sqlite3_select_all(sqlite3* db,char* table_name);
 
 #endif
