@@ -19,7 +19,6 @@ int main(int argc,char **argv)
 	struct sockaddr_in			servaddr;
 	char						*servip;
 	int							port;
-	int							k;
 	int							rv=-1;
 	char						buf[1024];
 	int							ch;
@@ -68,30 +67,47 @@ int main(int argc,char **argv)
 	}
 
 	connfd=sock_connect(servip,port);/* 连接服务器端 */
+	db=sqlite3_open_database(DB_NAME);/*  创建打开数据库 */ 
+	if(sqlite3_create_table(db,TABLE_NAME)<0)/*  创建表  */
+	{
+		dbg_print("Create table failure:%s\n",strerror(errno));
+		sqlite3_close_database(db);
+		return -1;
+	}
 
 	while(1)
 	{
 		memset(buf,0,sizeof(buf));
-		get_temperature(&pack_data.temp);
-		get_dev(pack_data.Id,len);
-		get_tm(pack_data.localt);
+		if(get_temperature(&pack_data.temp)<0)
+		{
+			dbg_print("Get tempareture failure:%s\n",strerror(errno));
+			return -1;
+		}
+		if(get_dev(pack_data.Id,len)<0)
+		{
+			dbg_print("Get ID failure:%s\n",strerror(errno));
+			return -2;
+		}
+    	if(get_tm(pack_data.localt)<0)
+		{
+			dbg_print("Get time failure:%s\n",strerror(errno));
+			return -3;
+		}
 
 		snprintf(buf,sizeof(buf),"%s %f %s",pack_data.Id,pack_data.temp,pack_data.localt);/* 将数据写入buf中 */
 
-		k=socket_alive(connfd);/* 判断服务器是否断开 */
-		if(k<0)/* 若断开 */
+		/* 判断服务器是否断开 */
+		if(socket_alive(connfd)<0)/* 若断开 */
 		{
 			close(connfd);
 
-			db=sqlite3_open_database(DB_NAME);/* 创建打开数据库 */
-			if(sqlite3_create_table(db,TABLE_NAME)==0)/* 创建表 */
+			if(sqlite3_insert(db,TABLE_NAME,&pack_data)<0)/* 数据写入表 */
 			{
-				if(sqlite3_insert(db,TABLE_NAME,&pack_data)==0)/* 数据写入表 */
-				{
-					dbg_print("Insert data successfully\n");
-				}
+				dbg_print("Insert data error\n");
+				sqlite3_close_database(db);
 			}
-			sqlite3_close_database(db);
+			dbg_print("Insert data successfully\n");
+
 			/* 尝试重新连接 */
 			if((connfd=sock_connect(servip,port))<0)/* 未连上 */
 			{
@@ -105,7 +121,7 @@ int main(int argc,char **argv)
 		}
 		else/* 服务端未断开或已连上 */
 		{
-			db=sqlite3_open_database(DB_NAME);
+		//	db=sqlite3_open_database(DB_NAME);
 			memset(data_buf,0,sizeof(data_buf));
 			if(sqlite3_select_all(db,TABLE_NAME)>0)/* 查询数据库中是否存有数据 */
 			{

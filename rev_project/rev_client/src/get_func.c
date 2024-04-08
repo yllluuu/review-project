@@ -28,18 +28,34 @@ void print_usage(char* programe)
 int get_dev(char *ID,int len)
 {
 	int		sn=1;
-	snprintf(ID,len,"%05d",sn);
+	int		ret;
+	ret=snprintf(ID,len,"%05d",sn);
+	if(ret<0 || ret>=len)
+	{
+		return -1;
+	}
+	return 0;
 }
 
 int get_tm(char* localt)
 {
 	time_t		seconds;
 	struct tm   *local;
+	int			ret;
 
 	time(&seconds);
 
 	local=localtime(&seconds);
+	if(local==NULL)
+	{
+		return -2;
+	}
 
-	snprintf(localt,64,"%d/%d/%d-%d:%d:%d\n",local->tm_year+1900,local->tm_mon+1,local->tm_mday,local->tm_hour,local->tm_min,local->tm_sec);
+	ret=snprintf(localt,64,"%d/%d/%d-%d:%d:%d\n",local->tm_year+1900,local->tm_mon+1,local->tm_mday,local->tm_hour,local->tm_min,local->tm_sec);
+
+	if(ret<0||ret>=64)
+	{
+		return -1;
+	}
 	return 0;
 }
