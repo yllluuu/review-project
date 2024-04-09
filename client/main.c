@@ -55,7 +55,7 @@ int main(int argc,char **argv)
 		}
 	}
 
-	if(!servip||!port||!time)
+	if(!servip||!port)
 	{
 		print_usage(argv[0]);
 		return 0;
@@ -67,7 +67,6 @@ int main(int argc,char **argv)
 	{
 		dbg_print("Create table failure:%s\n",strerror(errno));
 		sqlite3_close_database(db);
-		return -1;
 	}
 
 	while(1)
@@ -76,17 +75,14 @@ int main(int argc,char **argv)
 		if(get_temperature(&pack_data.temp)<0)
 		{
 			dbg_print("Get tempareture failure:%s\n",strerror(errno));
-			return -1;
 		}
 		if(get_dev(pack_data.Id,len)<0)
 		{
 			dbg_print("Get ID failure:%s\n",strerror(errno));
-			return -2;
 		}
     	if(get_tm(pack_data.localt)<0)
 		{
 			dbg_print("Get time failure:%s\n",strerror(errno));
-			return -3;
 		}
 
 		snprintf(buf,sizeof(buf),"%s %f %s",pack_data.Id,pack_data.temp,pack_data.localt);/* 将数据写入buf中 */
