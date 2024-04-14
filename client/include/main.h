@@ -43,6 +43,7 @@
 
 #define DB_NAME		"cli_dtbase.db"
 #define TABLE_NAME	"cli_user"
+int check_interval_time(time_t *last_time,int interval);
 
 #endif
 

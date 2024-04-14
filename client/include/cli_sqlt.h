@@ -28,14 +28,14 @@ typedef struct Sock_data
 	float		temp;
 }sock_data;
 
-sqlite3* sqlite3_open_database(char * db_name);
-void sqlite3_close_database(sqlite3* db);
-int sqlite3_exist_table(sqlite3* db,char* table_name);
-int sqlite3_create_table(sqlite3* db,char* table_name);
-int sqlite3_delete_table(sqlite3* db,char* table_name);
-int sqlite3_insert(sqlite3* db,char* table_name,sock_data *tdata);
-int sqlite3_delete(sqlite3* db,char* table_name);
-int sqlite3_select(sqlite3* db,char* table_name,char* data_buf);
-int sqlite3_select_all(sqlite3* db,char* table_name);
+//sqlite3* sqlite3_open_database(char * db_name);
+void sqlite3_close_database(void);
+int sqlite3_exist_table(char* table_name);
+int sqlite3_create_table(char *db_name,char* table_name);
+int sqlite3_delete_table(char* table_name);
+int sqlite3_insert(char* table_name,sock_data *tdata);
+int sqlite3_delete(char* table_name);
+int sqlite3_select(char* table_name,char* data_buf);
+int sqlite3_select_all(char* table_name);
 
 #endif

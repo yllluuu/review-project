@@ -21,6 +21,7 @@ void print_usage(char* programe)
 	dbg_print("-i(--ipaddr):specify server IP address.\n");
 	dbg_print("-p(--port):specify server port.\n");
 	dbg_print("-t(--time):Sampling interval.\n");
+	dbg_print("-b(--daemon):Runs in the background.\n");
 	dbg_print("-h(--help):print this help information.\n");
 	return ;
 }

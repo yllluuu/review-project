@@ -20,7 +20,15 @@
 #define dbg_print(format,args...)	do{} while(0)
 #endif
 
+typedef struct sock_t
+{
+	char		host[128];
+	int			port;
+	int			connfd;
+}sock_s;
+
+int sock_init(sock_s *sock,char *host,int port);
 int socket_alive(int fd);
-int sock_connect(char* servip,int port);
+int sock_connect(sock_s *sock);
 
 #endif

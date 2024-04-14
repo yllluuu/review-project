@@ -18,15 +18,21 @@
 #include<unistd.h>
 #include"cli_sqlt.h"
 
-//创建打开表
-sqlite3* sqlite3_open_database(char * db_name)
+static sqlite3		*db=NULL;
+//创建打开数据库
+/*  sqlite3* sqlite3_open_database(char * db_name)
 {
 	int			 	rc=0;
 	sqlite3* 		db;
 
-	if(db_name==NULL||strlen(db_name)==0)
+	if(0==access(db_name,F_OK))
 	{
-		return NULL;
+		if(SQLITE_OK!=sqlite3_open(db_name,&db))
+		{
+			dbg_print("open database failure:%s\n",            sqlite3_errmsg(db));
+			return NULL;
+		}
+		dbg_print("open database ok\n");
 	}
 
 	rc=sqlite3_open(db_name,&db);
@@ -42,41 +48,61 @@ sqlite3* sqlite3_open_database(char * db_name)
 	}
 
 	return db;
-}
+}*/
 
-void sqlite3_close_database(sqlite3 *db)
+void sqlite3_close_database(void)
 {
 	if(db!=NULL)
 	{
 		sqlite3_close(db);
 	}
+	return ;
 }
 
 //创建表
-int sqlite3_create_table(sqlite3* db,char * table_name)
+int sqlite3_create_table(char *db_name,char * table_name)
 {
 	int 	rc=0;
-	int 	ret=-1;
 	char	sql[128]={0};
 	char	*err_msg=NULL;
 
+	/* 数据库存在则打开 */
+	if(0==access(db_name,F_OK))
+	{
+		if(SQLITE_OK!=sqlite3_open(db_name,&db))
+		{
+			dbg_print("open database failure:%s\n",sqlite3_errmsg(db));
+			return -1;
+		}
+		dbg_print("open database ok\n");
+		return 0;
+	}
+	/* 数据库不存在，创建它 */
+	if(SQLITE_OK!=sqlite3_open(db_name,&db))
+	{
+		dbg_print("Open db error:%s\n",sqlite3_errmsg(db));
+		sqlite3_close(db);
+		return -1;
+	}
+	/* 创建表 */		
 	sprintf(sql,"CREATE TABLE IF NOT EXISTS %s(ID TEXT,Temperature REAL,time1 TEXT)",table_name);
 	rc=sqlite3_exec(db,sql,0,0,&err_msg);
 	if(rc!=SQLITE_OK)
 	{
 		dbg_print("create table %s error:%s\n",table_name,err_msg);
 		sqlite3_free(err_msg);
-		ret=-1;
+		sqlite3_close(db);
+		return -1;
 	}
 	else
 	{
-		ret=0;
+		return 0;
 	}
-	return ret;
+	return 0;
 }
 
 //删除表
-int sqlite3_delete_table(sqlite3*db,char * table_name)
+int sqlite3_delete_table(char * table_name)
 {
 	int		rc=0;
 	int 	ret=-1;
@@ -99,7 +125,7 @@ int sqlite3_delete_table(sqlite3*db,char * table_name)
 }
 
 //插入数据
-int sqlite3_insert(sqlite3* db,char* table_name,sock_data *tdata)
+int sqlite3_insert(char* table_name,sock_data *tdata)
 {
 	int		rc=0;
 	int		ret=-1;
@@ -107,7 +133,7 @@ int sqlite3_insert(sqlite3* db,char* table_name,sock_data *tdata)
 	char	*err_msg=NULL;
 
 	sprintf(sql,"INSERT INTO %s(ID,Temperature,time1) VALUES ('%s',%f,'%s')",table_name,tdata->Id,tdata->temp,tdata->localt);
-	
+
 	rc=sqlite3_exec(db,sql,0,0,&err_msg);
 	if(rc!=SQLITE_OK)
 	{
@@ -123,7 +149,7 @@ int sqlite3_insert(sqlite3* db,char* table_name,sock_data *tdata)
 }
 
 //删除数据
-int	sqlite3_delete(sqlite3* db,char* table_name)
+int	sqlite3_delete(char* table_name)
 {
 	int 	rc=0;
 	int		ret=-1;
@@ -144,7 +170,7 @@ int	sqlite3_delete(sqlite3* db,char* table_name)
 }
 
 //查询数据
-int sqlite3_select(sqlite3* db,char* table_name,char *data_buf)
+int sqlite3_select(char* table_name,char *data_buf)
 {
 	int		i;
 	char	*err_msg=NULL;
@@ -162,11 +188,11 @@ int sqlite3_select(sqlite3* db,char* table_name,char *data_buf)
 		return -1;
 	}	
 	snprintf(data_buf,128,"%s %.2f %s\n",results[3],atof(results[4]),results[5]);		    
-	return rows;
+	return 1;
 }
 
 //查询数据库中是否含有数据
-int sqlite3_select_all(sqlite3* db,char* table_name)
+int sqlite3_select_all(char* table_name)
 {
 	char			*err_msg=NULL;
 	int				rc;

@@ -25,10 +25,15 @@ int socket_alive(int fd)
 {
 	struct tcp_info		info;
 	int					len=sizeof(info);
+
+	if(fd<0)
+	{
+		return -1;
+	}
 	getsockopt(fd,IPPROTO_TCP,TCP_INFO,&info,(socklen_t *)&len);
 	if((info.tcpi_state==TCP_ESTABLISHED))
 	{
-		return 0;
+		return 1;
 	}
 	else
 	{
@@ -36,11 +41,12 @@ int socket_alive(int fd)
 		return -1;
 	}
 }
-
-int sock_connect(char *servip,int port)
+/* 连接socket */
+int sock_connect(sock_s *sock)
 {
 	struct sockaddr_in		servaddr;
 	int						connfd;
+
 	dbg_print("Trying to connect server...\n");
 
 	connfd=socket(AF_INET,SOCK_STREAM,0);
@@ -51,8 +57,8 @@ int sock_connect(char *servip,int port)
 
 	memset(&servaddr,0,sizeof(servaddr));
 	servaddr.sin_family=AF_INET;
-	servaddr.sin_port=htons(port);
-	inet_aton(servip,&servaddr.sin_addr);
+	servaddr.sin_port=htons(sock->port);
+	inet_aton(sock->host,&servaddr.sin_addr);
 	if(connect(connfd,(struct sockaddr*)&servaddr,sizeof(servaddr))<0)
 	{
 		dbg_print("Connect to server failure:%s\n",strerror(errno));
@@ -61,7 +67,25 @@ int sock_connect(char *servip,int port)
 	}
 	else
 	{
+		sock->connfd=connfd;
 		dbg_print("Connect to server successfully\n");
-		return connfd;
+		return 1;
 	}
+}
+/* 初始化sock结构体*/
+int sock_init(sock_s *sock,char *host,int port)
+{
+	if(!sock||port<=0)
+	{
+		return -1;
+	}
+
+	memset(sock,0,sizeof(sock));
+	sock->connfd=-1;
+	sock->port=port;
+	if(host)
+	{
+		strncpy(sock->host,host,sizeof(host));
+	}
+	return 0;
 }
