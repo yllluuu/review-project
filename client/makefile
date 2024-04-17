@@ -6,7 +6,7 @@ LDFLAGS +=-L ./lib/
 ARGUMENTS=-i 127.0.0.1 -p 78965 -t 3
 
 all:install
-	@gcc main.c -o ${APP_NAME} ${CFLAGS} -l${LIBNAME} ${LDFLAGS} -I /home/iot24/yanglu/sqlite/include/ -lsqlite3 -L /home/iot24/yanglu/sqlite/lib/ 
+	@gcc main.c -g -o ${APP_NAME} ${CFLAGS} -l${LIBNAME} ${LDFLAGS} -I /home/iot24/yanglu/sqlite/include/ -lsqlite3 -L /home/iot24/yanglu/sqlite/lib/ 
 
 shared_lib:
 	@gcc -shared -fPIC -o lib${LIBNAME}.so ./src/*.c -I ./include/ -I /home/iot24/yanglu/sqlite/include/ 

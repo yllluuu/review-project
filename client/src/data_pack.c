@@ -13,23 +13,21 @@
 #include<stdio.h>
 #include<string.h>
 #include<time.h>
-#include"get_func.h"
+#include"data_pack.h"
+#include"sock.h"
+#include"logger.h"
 
-void print_usage(char* programe)
+/* Description:Get id of the device */
+int get_dev(char *ID,int len,int sn)
 {
-	dbg_print("%s usage:\n",programe);
-	dbg_print("-i(--ipaddr):specify server IP address.\n");
-	dbg_print("-p(--port):specify server port.\n");
-	dbg_print("-t(--time):Sampling interval.\n");
-	dbg_print("-b(--daemon):Runs in the background.\n");
-	dbg_print("-h(--help):print this help information.\n");
-	return ;
-}
+	int			ret;
 
-int get_dev(char *ID,int len)
-{
-	int		sn=1;
-	int		ret;
+	if( !ID || len<DEV_LEN )
+	{
+		log_error("Invalid input arugments\n");
+		return -1;
+	}
+
 	ret=snprintf(ID,len,"%05d",sn);
 	if(ret<0 || ret>=len)
 	{
@@ -38,6 +36,7 @@ int get_dev(char *ID,int len)
 	return 0;
 }
 
+/* Description:Get current time */
 int get_tm(char* localt)
 {
 	time_t		seconds;
@@ -59,4 +58,19 @@ int get_tm(char* localt)
 		return -1;
 	}
 	return 0;
+}
+
+/* Description:define a new string format */
+int packet_data(pack_data_t *pack_info, char *buf, int size)
+{
+	if( !pack_info || !buf || size<0 )
+	{
+		log_error("Invalid input arguments\n");
+		return -1;
+	}
+
+	memset(buf,0,size);
+	snprintf(buf,size,"%s %f %s",pack_info->Id,pack_info->tempera,pack_info->local_t);
+
+	return strlen(buf);
 }

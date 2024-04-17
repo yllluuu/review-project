@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <sqlite3.h>
 #include <string.h>
-#include "ser_sqlt.h"
+#include "database.h"
 
 sqlite3* sqlite3_open_database(char* db_name)
 {

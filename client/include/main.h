@@ -28,21 +28,19 @@
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <libgen.h>
 #include <netinet/tcp.h>
-#include "cli_sqlt.h"
+#include "database.h"
 #include "ds18b20_get_temp.h"
-#include "get_func.h"
-#include "sock_ali_rec.h"
-
-#define CONFIG_DEBUG
-#ifdef CONFIG_DEBUG
-#define dbg_print(format,args...)	printf(format,##args)
-#else
-#define dbg_print(format,args...)	do{} while(0)
-#endif
+#include "data_pack.h"
+#include "sock.h"
+#include "proc.h"
+#include "logger.h"
 
 #define DB_NAME		"cli_dtbase.db"
 #define TABLE_NAME	"cli_user"
+#define SN			1
+
 int check_interval_time(time_t *last_time,int interval);
 
 #endif

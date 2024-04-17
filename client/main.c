@@ -12,22 +12,29 @@
  ********************************************************************************/
 #include "main.h"
 
+
+static void print_usage(char *progname);
+
 int main(int argc,char **argv)
 {
-	sock_s						sock;
+	sock_t						sock;
 	struct sockaddr_in			servaddr;
 	char						*servip=NULL;
 	int							port=0;
 	int							rv=-1;
-	char						buf[1024];
 	int							ch;
+	char						*progname=NULL;
+	char						*logfile="sock_client.log";
+	int							loglevel=LOG_LEVEL_INFO;
+	int							logsize=10;
 	int							daemon_run=0;
-	sock_data					pack_data;
+	int							pack_bytes=0;
+	pack_data_t					pack_data;/* Declare a struct variable */
+	pack_t						pack=packet_data;/* using string packet */
 	int							len=20;
 	int							interval;
 	time_t						last_time=0;
-	sqlite3						*db;
-	int							rows;
+	char						buf[1024];
 	char						data_buf[1024];
 	int							sample_flag=0;
 	struct option				opts[]=
@@ -39,6 +46,8 @@ int main(int argc,char **argv)
 		{"deamon",no_argument,NULL,'b'},
 		{NULL,0,NULL,0}
 	};
+
+	progname = (char *)basename(argv[0]);
 
 	while((ch=getopt_long(argc,argv,"i:p:t:h",opts,NULL))!=-1)
 	{
@@ -70,98 +79,113 @@ int main(int argc,char **argv)
 		return 0;
 	}
 
-	//connfd=sock_connect(servip,port);/* 连接服务器端 */
-	sock_init(&sock,servip,port);
-// 	db=sqlite3_open_database(DB_NAME);
-	if(sqlite3_create_table(DB_NAME,TABLE_NAME)<0)/*  创建表  */
+	if( log_open( logfile, loglevel, logsize, THREAD_LOCK_NONE) < 0 )
 	{
-		dbg_print("Create table failure:%s\n",strerror(errno));
+		printf("Initial log system failed\n");
+		return 1;
 	}
 
-	while(1)
+	install_default_signal();
+
+	if(daemon_run)
 	{
-		sample_flag=0;
+		daemon(0,0);
+	}
+
+	sock_init(&sock,servip,port);
+
+	if(database_table_init(DB_NAME,TABLE_NAME)<0)
+	{
+		log_error("Create table failure:%s\n",strerror(errno));
+	}
+
+	while( !g_signal.stop )
+	{
+		sample_flag=0;/* set a flag */
 		if(check_interval_time(&last_time,interval)>0)
 		{
-			memset(buf,0,sizeof(buf));
-			if(get_temperature(&pack_data.temp)<0)
+			if(get_temperature(&pack_data.tempera)<0)
 			{
-				dbg_print("Get tempareture failure:%s\n",strerror(errno));
+				log_error("Get tempareture failure:%s\n",strerror(errno));
 			}
-			if(get_dev(pack_data.Id,len)<0)
+			if(get_dev(pack_data.Id,len,SN)<0)
 			{
-				dbg_print("Get ID failure:%s\n",strerror(errno));
+				log_error("Get ID failure:%s\n",strerror(errno));
 			}
-    		if(get_tm(pack_data.localt)<0)
+    		if(get_tm(pack_data.local_t)<0)
 			{
-				dbg_print("Get time failure:%s\n",strerror(errno));
+				log_error("Get time failure:%s\n",strerror(errno));
 			}
 
-			snprintf(buf,sizeof(buf),"%s %f %s",pack_data.Id,pack_data.temp,pack_data.localt);
-			sample_flag=1;
+			pack_bytes = pack(&pack_data,buf,sizeof(buf));
+			if( pack_bytes>0)
+			{
+				sample_flag = 1;
+			}
 		}
-		/* 服务器若断开则重连 */
+		/* if the server is disconnected then reconnect it */
 		if(sock.connfd<0)
 		{
 			if((sock_connect(&sock))<0)
 			{
-				dbg_print("Reconnect server failure:%s\n",strerror(errno));
+			//	printf("Reconnect server failure:%s\n",strerror(errno));
 			}
 			else
-			dbg_print("Reconnect to server successfully\n");
+			log_info("Reconnect to server successfully\n");
 		}
-		/* 判断服务器是否断开 */
+		/* Check whether the server is disconnected */
 		if(socket_alive(sock.connfd)<0)
 		{
-			close(sock.connfd);
-			sock.connfd=-1;
+			sock_close(&sock);
 			if(sample_flag)
 			{
-				if(sqlite3_insert(TABLE_NAME,&pack_data)<0)
+				if(database_data_insert(TABLE_NAME,&pack_data)<0)
 				{
-					dbg_print("Insert data error\n");
-					sqlite3_close_database();
+					log_error("Insert data error\n");
+					database_close();
 				}
 				else
-				dbg_print("Insert data successfully\n");
+				{
+					log_info("Insert data successfully\n");
+				}
 			}
 			continue;
 		}
-		/*  服务端未断开或已连上  */
+
+		/* The socket is connected */
 		if(sample_flag)
 		{
-			if(write(sock.connfd,buf,strlen(buf))<0)
+			if(sock_send_data(&sock,buf,pack_bytes)<0)
 			{
-				dbg_print("Write 1data to server failure:%s\n",strerror(errno));
-				if(sqlite3_insert(TABLE_NAME,&pack_data)<0)
+				log_error("Write 1data to server failure:%s\n",strerror(errno));
+				if(database_data_insert(TABLE_NAME,&pack_data)<0)
 				{
-					dbg_print("Insert data error\n");
-					sqlite3_close_database();
+					log_info("Insert data error\n");
+					database_close();
 					goto CleanUp;
 				}
 				else
 				{
-					dbg_print("Insert data successfully\n");
+					log_info("Insert data successfully\n");
 				}
 				continue;
 			}
 		}
-		/* 查询数据库中是否存有数据 */
-		if(sqlite3_select_all(TABLE_NAME)>0)
+
+		/* Check if there is data in the database */
+		if(database_data_select(TABLE_NAME)>0)
 		{
 			memset(data_buf,0,sizeof(data_buf));
-			if((sqlite3_select(TABLE_NAME,data_buf))>0)
+			if((database_data_take(TABLE_NAME,data_buf))>0)
 			{
-				printf("%s\n",data_buf);
-				dbg_print("从数据库中取出数据\n");
-				if(write(sock.connfd,data_buf,strlen(data_buf))<0)
+				if(sock_send_data(&sock,data_buf,pack_bytes)<0)
 				{
-					dbg_print("Write data to server failure:%s\n",strerror(errno));
+					//printf("Write data to server failure:%s\n",strerror(errno));
 					goto CleanUp;
 				}
 				else
 				{
-					sqlite3_delete(TABLE_NAME);
+					database_data_delete(TABLE_NAME);
 				}
 			}
 		}
@@ -169,12 +193,24 @@ int main(int argc,char **argv)
 	}//end of while
 
 CleanUp:
-	close(sock.connfd);
-	sock.connfd=-1;
+	sock_close(&sock);
 
 	return 0;
 }
 
+void print_usage(char *progname)
+{
+	printf("%s usage:\n",progname);
+	printf("-i(--ipaddr):specify server IP address.\n");
+	printf("-p(--port):specify server port.\n");
+	printf("-t(--time):sampling interval.\n");
+	printf("-b(--daemon):runs in the background.\n");
+	printf("-h(--help):print this help information.\n");
+
+	return ;
+}
+
+/* set interval */
 int check_interval_time(time_t *last_time,int interval)
 {
 	int			need=0;

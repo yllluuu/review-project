@@ -2,17 +2,17 @@
  *      Copyright:  (C) 2024 linuxer<linuxer@email.com>
  *                  All rights reserved.
  *
- *       Filename:  get_func.h
+ *       Filename:  ser_sqlt.h
  *    Description:  This file 
  *
  *        Version:  1.0.0(01/04/24)
  *         Author:  linuxer <linuxer@email.com>
- *      ChangeLog:  1, Release initial version on "01/04/24 13:27:47"
+ *      ChangeLog:  1, Release initial version on "01/04/24 20:45:03"
  *                 
  ********************************************************************************/
 
-#ifndef	_GET_FUNC_H
-#define _GET_FUNC_H
+#ifndef _DATABASE_H
+#define _DATABASE_H
 
 #define CONFIG_DEBUG
 #ifdef  CONFIG_DEBUG
@@ -21,8 +21,9 @@
 #define dbg_print(format,args...)	do{} while(0)
 #endif
 
-void print_usage(char* programe);
-int get_dev(char* ID,int len);
-int get_tm(char* localt);
+sqlite3* sqlite3_open_database(char* db_name);
+void sqlite3_close_database(sqlite3* db);
+int sqlite3_create_table(sqlite3* db,char* table_name);
+int sqlite3_insert(sqlite3* db,char* table_name,char* id,float* temp,char* localtime);
 
 #endif

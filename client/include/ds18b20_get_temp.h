@@ -14,13 +14,15 @@
 #ifndef _DS18B20_GET_TEMP_
 #define _DS18B20_GET_TEMP_
 
+#if 0
 #define CONFIG_DEBUG
 #ifdef  CONFIG_DEBUG
 #define dbg_print(format,args...)	printf(format,##args)
 #else
 #define dbg_print(format,args...)	do{} while(0)
 #endif
+#endif
 
-int get_temperature(float *temp);
+extern int get_temperature(float *temp);
 
 #endif
