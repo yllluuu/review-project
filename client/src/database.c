@@ -70,10 +70,13 @@ int database_table_init(char *db_name,char * table_name)
 	{
 		log_error("create table %s error:%s\n",table_name,err_msg);
 		sqlite3_free(err_msg);
+		sqlite3_close(db);
+		unlink(db_name);
 		return -4;
 	}
 
 	log_info("create table ok\n");
+	sqlite3_free(err_msg);
 
 	return 0;
 }
@@ -91,7 +94,7 @@ int table_delete(char * table_name)
 	if(rc!=SQLITE_OK)
 	{
 		log_error("delete table %s error:%s\n",table_name,err_msg);
-		sqlite3_free(sql);
+		sqlite3_free(err_msg);
 		ret=-1;
 	}
 	else
@@ -159,7 +162,8 @@ int database_data_take(char* table_name,char *data_buf)
 	}	
 	snprintf(data_buf,128,"%s %.2f %s\n",results[3],atof(results[4]),results[5]);		    
 
-	return 1;
+	sqlite3_free_table(results);
+	return 0;
 }
 
 /* Description:Query whether there is data in the database */
@@ -179,7 +183,7 @@ int database_data_select(char* table_name)
 	{
 		log_error("Failed to prepare statement:%s\n",err_msg);
 		sqlite3_free(err_msg);
-		return (0);
+		return -1;
 	}
 
 	rc=sqlite3_step(stmt);
@@ -190,7 +194,7 @@ int database_data_select(char* table_name)
 
 	if(result>0)
 	{
-		rv=1;
+		rv=0;
 	}
 	else
 	{

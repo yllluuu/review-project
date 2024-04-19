@@ -19,6 +19,8 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <netinet/tcp.h>
+#include <netdb.h>
+
 #include "sock.h"
 #include "logger.h"
 
@@ -69,6 +71,74 @@ int sock_connect(sock_t *sock)
 		log_error("Connect to server successfully\n");
 		return 0;
 	}
+}
+
+
+/* Description:connect to server */
+int socket_connect(sock_t *sock)
+{
+	int						rv=0;
+	int						fd=-1;
+	int 					err;//getaddrinfo返回值
+	struct addrinfo			hints,*result,*rp;
+	struct in_addr			inaddr;
+	struct sockaddr_in		addr;
+	char					service[20];
+	char					Buf[32];
+
+	if(!sock)
+	{
+		return -1;
+	}
+
+	memset(&hints,0,sizeof(struct addrinfo));
+	hints.ai_family=AF_INET;
+	hints.ai_socktype=SOCK_STREAM;
+	hints.ai_protocol=IPPROTO_TCP;
+
+	/* No domain name resolution is required */
+	if(inet_aton(sock->host,&inaddr))
+	{
+		hints.ai_flags |= AI_NUMERICHOST;
+	}
+
+	snprintf(service,sizeof(service),"%d",sock->port);
+	if((err=getaddrinfo(sock->host,service,&hints,&result)!=0))
+	{
+		log_error("getaddrinfo failure\n");
+		return -2;
+	}
+	log_info("getaddrinfo ok\n");
+
+	for(rp=result;rp!=NULL;rp=rp->ai_next)//遍历result指针中的所有套接字地址结构
+	{
+		fd=socket(rp->ai_family,rp->ai_socktype,rp->ai_protocol);
+
+		if(fd<0)
+		{
+			log_error("create socket failure\n");
+			rv=-3;
+			continue;
+		}
+		
+		rv=connect(fd,rp->ai_addr,sizeof(addr));
+		if(rv == 0)
+		{
+			sock->connfd=fd;
+			log_info("connect to server[%d] successfully\n",sock->connfd);
+			break;
+		}
+		else
+		{
+//			inet_ntop(rp->ai_family,&(((struct sockaddr_in*)(rp->ai_addr))->sin_addr),Buf,sizeof(Buf));
+//			printf("%s\n",Buf);
+			close(fd);
+			continue;
+		}
+	}
+
+	freeaddrinfo(result);
+	return rv;
 }
 
 /* Description:Close socket */

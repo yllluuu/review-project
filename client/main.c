@@ -43,13 +43,13 @@ int main(int argc,char **argv)
 		{"port",required_argument,NULL,'p'},
 		{"interval",required_argument,NULL,'t'},
 		{"help",no_argument,NULL,'h'},
-		{"deamon",no_argument,NULL,'b'},
+		{"deamon",no_argument,NULL,'d'},
 		{NULL,0,NULL,0}
 	};
 
 	progname = (char *)basename(argv[0]);
 
-	while((ch=getopt_long(argc,argv,"i:p:t:h",opts,NULL))!=-1)
+	while((ch=getopt_long(argc,argv,"i:p:t:hd",opts,NULL))!=-1)
 	{
 		switch(ch)
 		{
@@ -126,13 +126,15 @@ int main(int argc,char **argv)
 		/* if the server is disconnected then reconnect it */
 		if(sock.connfd<0)
 		{
-			if((sock_connect(&sock))<0)
+			if((socket_connect(&sock))<0)
 			{
-			//	printf("Reconnect server failure:%s\n",strerror(errno));
+				log_error("Reconnect server failure:%s\n",strerror(errno));
+				sock_close(&sock);
 			}
 			else
-			log_info("Reconnect to server successfully\n");
+				log_info("Reconnect to server successfully\n");
 		}
+
 		/* Check whether the server is disconnected */
 		if(socket_alive(sock.connfd)<0)
 		{
@@ -162,26 +164,27 @@ int main(int argc,char **argv)
 				{
 					log_info("Insert data error\n");
 					database_close();
-					goto CleanUp;
 				}
 				else
 				{
 					log_info("Insert data successfully\n");
 				}
+
+				sock_close(&sock);
 				continue;
 			}
 		}
 
 		/* Check if there is data in the database */
-		if(database_data_select(TABLE_NAME)>0)
+		if(!database_data_select(TABLE_NAME))
 		{
 			memset(data_buf,0,sizeof(data_buf));
-			if((database_data_take(TABLE_NAME,data_buf))>0)
+			if(!database_data_take(TABLE_NAME,data_buf))
 			{
 				if(sock_send_data(&sock,data_buf,pack_bytes)<0)
 				{
-					//printf("Write data to server failure:%s\n",strerror(errno));
-					goto CleanUp;
+					log_error("Write data to server failure:%s\n",strerror(errno));
+					sock_close(&sock);
 				}
 				else
 				{
@@ -194,6 +197,8 @@ int main(int argc,char **argv)
 
 CleanUp:
 	sock_close(&sock);
+	database_close();
+	log_close();
 
 	return 0;
 }
@@ -204,7 +209,7 @@ void print_usage(char *progname)
 	printf("-i(--ipaddr):specify server IP address.\n");
 	printf("-p(--port):specify server port.\n");
 	printf("-t(--time):sampling interval.\n");
-	printf("-b(--daemon):runs in the background.\n");
+	printf("-d(--daemon):runs in the background.\n");
 	printf("-h(--help):print this help information.\n");
 
 	return ;
