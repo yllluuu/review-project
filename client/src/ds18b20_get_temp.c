@@ -63,6 +63,7 @@ int get_temperature(float *temp)
 	if((fd=open(w1_path,O_RDONLY))<0)
 	{
 		log_error("Open file failure:%s\n",strerror(errno));
+		goto cleanup;
 		return -3;
 	}
 
@@ -70,6 +71,7 @@ int get_temperature(float *temp)
 	if(read(fd,buf,sizeof(buf))<0)
 	{
 		log_error("Read data from fd[%d] failure:%s\n",fd,strerror(errno));
+		goto cleanup;
 		return -4;
 	}
 
@@ -77,12 +79,16 @@ int get_temperature(float *temp)
 	if(!ptr)
 	{
 		log_error("Cannot find t= string\n");
+		goto cleanup;
 		return -5;
 	}
 
 	ptr +=2;
 	*temp=atof(ptr)/1000;
+	
+cleanup:
 	close(fd);
+
 	return 0;
 }
 

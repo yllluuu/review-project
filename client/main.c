@@ -27,11 +27,12 @@ int main(int argc,char **argv)
 	char						*logfile="sock_client.log";
 	int							loglevel=LOG_LEVEL_INFO;
 	int							logsize=10;
-	int							daemon_run=0;
+	int							daemon_run=1;
 	int							pack_bytes=0;
 	pack_data_t					pack_data;/* Declare a struct variable */
 	pack_t						pack=packet_data;/* using string packet */
 	int							len=20;
+	int							size=64;
 	int							interval;
 	time_t						last_time=0;
 	char						buf[1024];
@@ -43,7 +44,7 @@ int main(int argc,char **argv)
 		{"port",required_argument,NULL,'p'},
 		{"interval",required_argument,NULL,'t'},
 		{"help",no_argument,NULL,'h'},
-		{"deamon",no_argument,NULL,'d'},
+		{"debug",no_argument,NULL,'d'},
 		{NULL,0,NULL,0}
 	};
 
@@ -63,7 +64,9 @@ int main(int argc,char **argv)
 				interval=atoi(optarg);
 				break;
 			case 'd':
-				daemon_run=1;
+				daemon_run=0;
+				logfile="console";
+				loglevel=LOG_LEVEL_DEBUG;
 				break;
 			case 'h':
 				print_usage(argv[0]);
@@ -87,11 +90,6 @@ int main(int argc,char **argv)
 
 	install_default_signal();
 
-	if(daemon_run)
-	{
-		daemon(0,0);
-	}
-
 	sock_init(&sock,servip,port);
 
 	if(database_table_init(DB_NAME,TABLE_NAME)<0)
@@ -112,7 +110,7 @@ int main(int argc,char **argv)
 			{
 				log_error("Get ID failure:%s\n",strerror(errno));
 			}
-    		if(get_tm(pack_data.local_t)<0)
+    		if(get_tm(pack_data.local_t,size)<0)
 			{
 				log_error("Get time failure:%s\n",strerror(errno));
 			}
@@ -124,7 +122,7 @@ int main(int argc,char **argv)
 			}
 		}
 		/* if the server is disconnected then reconnect it */
-		if(sock.connfd<0)
+		if( sock.connfd < 0 )
 		{
 			if((socket_connect(&sock))<0)
 			{
@@ -139,12 +137,11 @@ int main(int argc,char **argv)
 		if(socket_alive(sock.connfd)<0)
 		{
 			sock_close(&sock);
-			if(sample_flag)
+			if( sample_flag )
 			{
 				if(database_data_insert(TABLE_NAME,&pack_data)<0)
 				{
 					log_error("Insert data error\n");
-					database_close();
 				}
 				else
 				{
@@ -163,7 +160,6 @@ int main(int argc,char **argv)
 				if(database_data_insert(TABLE_NAME,&pack_data)<0)
 				{
 					log_info("Insert data error\n");
-					database_close();
 				}
 				else
 				{
@@ -192,7 +188,7 @@ int main(int argc,char **argv)
 				}
 			}
 		}
-		usleep(50000);
+	//	usleep(50000);
 	}//end of while
 
 CleanUp:
@@ -209,7 +205,7 @@ void print_usage(char *progname)
 	printf("-i(--ipaddr):specify server IP address.\n");
 	printf("-p(--port):specify server port.\n");
 	printf("-t(--time):sampling interval.\n");
-	printf("-d(--daemon):runs in the background.\n");
+	printf("-d(--debug):running in debug mode.\n");
 	printf("-h(--help):print this help information.\n");
 
 	return ;

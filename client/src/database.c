@@ -152,7 +152,7 @@ int database_data_take(char* table_name,char *data_buf)
 	int		rows,columns;
 	char	**results;
 
-	sprintf(sql,"SELECT * FROM %s",table_name);
+	sprintf(sql,"SELECT * FROM %s LIMIT 1",table_name);
 	rc=sqlite3_get_table(db,sql,&results,&rows,&columns,&err_msg);
 	if(rc!=SQLITE_OK)
 	{

@@ -32,7 +32,7 @@ typedef int (*pack_t)(pack_data_t *pack_data,char *buf,int size);
 extern int get_dev(char* ID,int len,int sn);
 
 /* Description:Get current time */
-extern int get_tm(char* localt);
+extern int get_tm(char* localt, int size);
 
 extern int packet_data(pack_data_t *pack_info,char *buf,int size);
 

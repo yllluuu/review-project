@@ -18,17 +18,17 @@
 #include"logger.h"
 
 /* Description:Get id of the device */
-int get_dev(char *ID,int len,int sn)
+int get_dev(char *id,int len,int sn)
 {
 	int			ret;
 
-	if( !ID || len<DEV_LEN )
+	if( !id || len<DEV_LEN )
 	{
 		log_error("Invalid input arugments\n");
 		return -1;
 	}
 
-	ret=snprintf(ID,len,"%05d",sn);
+	ret=snprintf(id,len,"%05d",sn);
 	if(ret<0 || ret>=len)
 	{
 		return -1;
@@ -37,7 +37,7 @@ int get_dev(char *ID,int len,int sn)
 }
 
 /* Description:Get current time */
-int get_tm(char* localt)
+int get_tm(char* localt, int size)
 {
 	time_t		seconds;
 	struct tm   *local;
@@ -51,7 +51,7 @@ int get_tm(char* localt)
 		return -2;
 	}
 
-	ret=snprintf(localt,64,"%d/%d/%d-%d:%d:%d\n",local->tm_year+1900,local->tm_mon+1,local->tm_mday,local->tm_hour,local->tm_min,local->tm_sec);
+	ret=snprintf(localt,size,"%d/%d/%d-%d:%d:%d\n",local->tm_year+1900,local->tm_mon+1,local->tm_mday,local->tm_hour,local->tm_min,local->tm_sec);
 
 	if(ret<0||ret>=64)
 	{
